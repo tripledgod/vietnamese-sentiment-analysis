@@ -21,4 +21,5 @@ Thumbs.db
 
 # Model / data (giữ repo nhẹ, model tải riêng)
 # Bỏ comment nếu không commit model
-# data/models/
+data/models/
+*.safetensors
