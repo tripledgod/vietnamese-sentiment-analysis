@@ -11,7 +11,7 @@ python run.py
 Hoặc:
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 **Lưu ý:** Chạy từ thư mục `backend/`. Model được load từ `../data/models/phobert_sentiment/`.

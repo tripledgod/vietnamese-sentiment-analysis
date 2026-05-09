@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Giảng viên · PhoBERT</title>
+  <link rel="stylesheet" href="styles/teacher-dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- A. Đăng nhập -->
+  <div id="loginShell" class="login-shell">
+    <div class="login-card">
+      <h1>Giảng viên</h1>
+      <p class="sub">Đăng nhập bằng tài khoản được nhà trường cấp (tạo sẵn trong hệ thống).</p>
+      <form id="loginForm" class="stack">
+        <label class="lbl" for="username">Mã đăng nhập</label>
+        <input type="text" id="username" autocomplete="username" required />
+        <label class="lbl" for="password">Mật khẩu</label>
+        <input type="password" id="password" autocomplete="current-password" required />
+        <button type="submit" class="btn btn-brand" id="btnLogin">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="loginBtnText">Đăng nhập</span>
+        </button>
+      </form>
+      <p class="sub" style="text-align:center;margin-top:1rem;font-size:0.85rem">
+        <a href="student.html" style="color:var(--brand-sand)">Cổng Sinh viên</a>
+        ·
+        <a href="index.html" style="color:var(--brand-sand)">Demo API</a>
+      </p>
+      <div class="err" id="loginErr"></div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="appShell" class="app-layout hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        PhoBERT Dashboard
+        <span>Phân tích cảm xúc phản hồi</span>
+      </div>
+      <nav class="nav-dash">
+        <button type="button" class="nav-link active" data-page="page-dashboard">Tổng quan</button>
+        <button type="button" class="nav-link" data-page="page-feedback">Quản lý phản hồi</button>
+        <button type="button" class="nav-link" data-page="page-survey-wf">Khảo sát theo kỳ</button>
+        <button type="button" class="nav-link" data-page="page-admin">Quản trị</button>
+      </nav>
+      <div class="sidebar-foot">
+        <strong id="sidebarUser">—</strong>
+        <button type="button" class="btn btn-ghost btn-sm" style="width:100%;margin-top:0.65rem" id="btnLogout">
+          Đăng xuất
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- A. Dashboard -->
+      <section id="page-dashboard">
+        <h1 class="page-title">Tổng quan</h1>
+        <p class="page-desc">Thống kê toàn hệ thống và so sánh mức độ tích cực theo lớp.</p>
+        <div class="err" id="dashError"></div>
+
+        <div class="stat-grid">
+          <div class="stat-card sand">
+            <div class="k">Sinh viên tham gia</div>
+            <div class="v" id="statStudents">—</div>
+          </div>
+          <div class="stat-card emerald">
+            <div class="k">Bình luận đã phân tích</div>
+            <div class="v" id="statFeedbacks">—</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="k">Tỷ lệ hài lòng (Positive)</div>
+            <div class="v" id="statPositive">—</div>
+          </div>
+        </div>
+
+        <div class="chart-row">
+          <div class="chart-card">
+            <h3>Phân bố cảm xúc</h3>
+            <div class="chart-wrap">
+              <canvas id="chartPie" aria-label="Biểu đồ tròn cảm xúc"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>So sánh phản hồi tích cực giữa các lớp</h3>
+            <div class="chart-wrap">
+              <canvas id="chartBar" aria-label="Biểu đồ cột theo lớp"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- B. Feedback -->
+      <section id="page-feedback" class="hidden">
+        <h1 class="page-title">Quản lý phản hồi</h1>
+        <p class="page-desc">Lọc theo lớp, nhãn cảm xúc; tìm kiếm từ khóa trong nội dung.</p>
+
+        <div class="alerts-block">
+          <h3>⚠ Cần lưu ý — Tiêu cực (độ tin cậy cao)</h3>
+          <div class="alert-cards" id="alertCards"></div>
+        </div>
+
+        <div class="toolbar">
+          <div class="field">
+            <label class="lbl" for="filterClass">Lớp</label>
+            <select id="filterClass">
+              <option value="">Tất cả lớp</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="lbl" for="filterLabel">Nhãn</label>
+            <select id="filterLabel">
+              <option value="">Tất cả</option>
+              <option value="positive">Tích cực</option>
+              <option value="negative">Tiêu cực</option>
+              <option value="neutral">Trung tính</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label class="lbl" for="filterSearch">Tìm trong bình luận</label>
+            <input type="search" id="filterSearch" placeholder="Ví dụ: học phí, thầy cô…" />
+          </div>
+          <button type="button" class="btn btn-brand btn-sm" id="btnApplyFilter" style="width:auto">
+            Áp dụng lọc
+          </button>
+        </div>
+
+        <div class="err" id="feedbackError"></div>
+
+        <div class="data-card">
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Nội dung</th>
+                  <th>Nhãn</th>
+                  <th>Tin cậy</th>
+                  <th>Sinh viên</th>
+                  <th>Lớp</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <button type="button" class="btn btn-ghost btn-sm" id="btnPrev">Trước</button>
+            <span id="pagerInfo">—</span>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnNext">Sau</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Khảo sát theo kỳ / môn -->
+      <section id="page-survey-wf" class="hidden">
+        <h1 class="page-title">Mở khảo sát theo lớp &amp; kỳ</h1>
+        <p class="page-desc">
+          Chọn lớp và kỳ học, tích các môn cần mở form khảo sát, rồi bấm <strong>Kích hoạt</strong>. Sinh viên thuộc lớp đó sẽ thấy từng môn trên cổng sinh viên.
+        </p>
+        <div class="data-card" style="max-width:640px">
+          <label class="lbl" for="selectSurveyClass">Lớp</label>
+          <select id="selectSurveyClass" class="input-like" style="width:100%;margin-bottom:1rem"></select>
+          <label class="lbl" for="selectSurveySemester">Kỳ học</label>
+          <select id="selectSurveySemester" class="input-like" style="width:100%;margin-bottom:1rem"></select>
+          <p class="lbl" style="margin-top:0.5rem">Môn học trong kỳ (tích = mở khảo sát)</p>
+          <div id="surveyWfSubjects" class="survey-wf-subjects"></div>
+          <button type="button" class="btn btn-brand" style="margin-top:1rem;width:auto" id="btnSurveyActivate">
+            Kích hoạt / Cập nhật
+          </button>
+          <div id="surveyWfMsg" style="margin-top:0.75rem"></div>
+        </div>
+      </section>
+
+      <!-- C. Admin -->
+      <section id="page-admin" class="hidden">
+        <h1 class="page-title">Quản trị</h1>
+        <p class="page-desc">Import danh sách sinh viên và tạo lớp — cần khóa X-Admin-Key từ máy chủ.</p>
+
+        <div class="admin-card">
+          <h3>Khóa quản trị (X-Admin-Key)</h3>
+          <p class="admin-hint">Lưu trong phiên trình duyệt để gọi API import / tạo lớp. Không dùng chung JWT giảng viên.</p>
+          <input type="password" id="adminKeyInput" placeholder="Dán ADMIN_API_KEY" autocomplete="off" />
+          <button type="button" class="btn btn-brand btn-sm" style="margin-top:0.75rem;width:auto" id="btnSaveAdminKey">
+            Lưu khóa phiên
+          </button>
+          <div id="adminKeyMsg"></div>
+        </div>
+
+        <div class="admin-card">
+          <h3>Import Excel danh sách người dùng</h3>
+          <p class="admin-hint">
+            Một sheet: cột username/MSSV, role, có thể kèm class_name, department… Mật khẩu lần đầu luôn
+            <code>Huce@123</code> (hoặc <code>DEFAULT_INITIAL_PASSWORD</code> trên server); cột password trong file không dùng.
+          </p>
+          <input type="file" id="excelFile" accept=".xlsx,.xlsm" class="hidden" />
+          <button type="button" class="btn btn-ghost" id="btnPickExcel">Chọn file &amp; tải lên</button>
+          <div id="importMsg" style="margin-top:0.75rem"></div>
+        </div>
+
+        <div class="admin-card">
+          <h3>Import Excel 3 sheet (môn + lớp + sinh viên)</h3>
+          <p class="admin-hint">
+            Ba sheet trong cùng file; hệ thống nhận theo tiêu đề cột: <strong>subject_code</strong> + <strong>subject_name</strong> |
+            <strong>class_name</strong> + <strong>department</strong> (sheet lớp không có cột MSSV) |
+            <strong>MSSV</strong> hoặc <strong>username</strong> (mã đăng nhập) + <strong>full_name</strong> + <strong>class_name</strong> (khớp tên lớp). Mật khẩu lần đầu do server quy định (<code>Huce@123</code> / <code>DEFAULT_INITIAL_PASSWORD</code>); cột password trong Excel không dùng.
+          </p>
+          <input type="file" id="masterExcelFile" accept=".xlsx,.xlsm" class="hidden" />
+          <button type="button" class="btn btn-ghost" id="btnPickMasterExcel">Chọn file master &amp; tải lên</button>
+          <div id="importMasterMsg" style="margin-top:0.75rem"></div>
+        </div>
+
+        <div class="admin-card">
+          <h3>Tạo lớp</h3>
+          <form id="formCreateClass" class="stack" style="max-width:420px">
+            <label class="lbl" for="newClassName">Tên lớp</label>
+            <input type="text" id="newClassName" required placeholder="Ví dụ: CNTT-K65" />
+            <label class="lbl" for="newClassDept">Khoa / đơn vị</label>
+            <input type="text" id="newClassDept" placeholder="Ví dụ: Khoa CNTT" />
+            <button type="submit" class="btn btn-brand btn-sm" style="width:auto">Tạo lớp</button>
+          </form>
+          <div id="classMsg"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/teacher-dashboard.js"></script>
+</body>
+</html>

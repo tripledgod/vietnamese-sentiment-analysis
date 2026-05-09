@@ -141,6 +141,10 @@
   <main>
     <h1>Phân tích cảm xúc tiếng Việt</h1>
     <p class="subtitle">PhoBERT · Chuẩn hóa · Tách từ · Dự đoán</p>
+    <p class="subtitle" style="margin-top:-1rem">
+      Cần JWT: đăng nhập tại <a href="student.html" style="color:var(--accent)">student.html</a> hoặc
+      <a href="lecturer.html" style="color:var(--accent)">lecturer.html</a> (token lưu trong phiên trình duyệt).
+    </p>
 
     <textarea
       id="input"
@@ -155,7 +159,7 @@
   </main>
 
   <script>
-    const API_URL = 'http://localhost:8001';
+    const API_URL = 'http://localhost:8000';
     const input = document.getElementById('input');
     const btn = document.getElementById('btn');
     const result = document.getElementById('result');
@@ -186,6 +190,14 @@
     async function predict() {
       const text = input.value.trim();
       if (!text) return;
+      const token =
+        sessionStorage.getItem('access_token_student') ||
+        sessionStorage.getItem('access_token_teacher') ||
+        sessionStorage.getItem('access_token');
+      if (!token) {
+        errEl.textContent = 'Chưa có phiên đăng nhập. Mở student.html hoặc lecturer.html để lấy JWT.';
+        return;
+      }
       btn.disabled = true;
       errEl.textContent = '';
       result.classList.remove('show');
@@ -193,7 +205,10 @@
       try {
         const res = await fetch(`${API_URL}/predict`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
           body: JSON.stringify({ text }),
         });
         if (!res.ok) {

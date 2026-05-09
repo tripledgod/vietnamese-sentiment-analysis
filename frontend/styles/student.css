@@ -1,0 +1,359 @@
+/* Cổng Sinh viên — khảo sát & lịch sử */
+@import url('portal.css');
+
+body.student-body {
+  padding: 0;
+  background: var(--bg);
+}
+
+.student-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 1.75rem 1.25rem 3rem;
+}
+
+/* --- Login --- */
+.login-card {
+  max-width: 400px;
+  margin: 10vh auto 0;
+}
+.login-card h1 {
+  text-align: center;
+  font-size: 1.35rem;
+}
+.login-card .subtitle {
+  text-align: center;
+}
+.btn-login {
+  width: 100%;
+  position: relative;
+  min-height: 48px;
+}
+.btn-login.loading {
+  pointer-events: none;
+}
+.btn-login .btn-spinner {
+  display: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+.btn-login.loading .btn-label {
+  opacity: 0.85;
+}
+.btn-login.loading .btn-spinner,
+.btn-submit-survey.loading .btn-spinner {
+  display: inline-block;
+}
+.btn-submit-survey .btn-spinner {
+  display: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+.btn-submit-survey.loading {
+  pointer-events: none;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- App header --- */
+.student-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.greeting {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+.student-meta {
+  margin-top: 0.25rem;
+}
+
+/* --- Tabs --- */
+.student-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.nav-tab {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.nav-tab:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.nav-tab.active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* --- Survey --- */
+.survey-textarea {
+  min-height: 220px;
+  font-size: 1rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+.btn-submit-survey {
+  width: 100%;
+  margin-top: 1rem;
+  min-height: 48px;
+}
+
+.thank-you {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: var(--positive);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+  animation: fadeIn 0.35s ease;
+}
+.thank-you.hidden {
+  display: none !important;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Accordion --- */
+.acc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.acc-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.acc-trigger {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.acc-trigger:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.acc-trigger-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+}
+.acc-date {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.acc-sep {
+  color: var(--border);
+  font-weight: 300;
+  user-select: none;
+}
+.acc-form-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.acc-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  margin-top: 0.2rem;
+  transition: transform 0.2s;
+}
+.acc-item.open .acc-chevron {
+  transform: rotate(180deg);
+}
+.acc-panel {
+  padding: 0 1.15rem 1rem;
+  border-top: 1px solid var(--border);
+  display: none;
+}
+.acc-item.open .acc-panel {
+  display: block;
+}
+
+/* Badge màu theo yêu cầu: xanh / đỏ / xám */
+.badge-vi {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.badge-vi.positive {
+  background: rgba(34, 197, 94, 0.22);
+  color: var(--positive);
+}
+.badge-vi.negative {
+  background: rgba(239, 68, 68, 0.22);
+  color: var(--negative);
+}
+.badge-vi.neutral {
+  background: rgba(161, 161, 170, 0.25);
+  color: #a1a1aa;
+}
+
+.history-detail-row {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.history-detail-row:last-child {
+  border-bottom: none;
+}
+.history-detail-text {
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+}
+.history-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.history-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Danh sách môn mở khảo sát */
+.offerings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.offering-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.offering-row .offering-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.offering-row .offering-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+/* Modal khảo sát theo môn */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+.modal-backdrop.hidden {
+  display: none;
+}
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  margin: 2rem auto;
+  padding: 1.25rem 1.35rem 1.5rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface, #18181b);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+.modal-title {
+  font-size: 1.1rem;
+  margin: 0 0 0.35rem;
+}
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+.sq-field {
+  margin-bottom: 0.85rem;
+}
+.sq-field .lbl {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.sq-field textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+}

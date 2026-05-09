@@ -19,8 +19,13 @@ env/
 .DS_Store
 Thumbs.db
 
+# Biến môi trường (JWT, ADMIN_API_KEY — có .env.example làm mẫu)
+backend/.env
+.env
+
 # Model / data (giữ repo nhẹ, model tải riêng)
 # Bỏ comment nếu không commit model
 data/models/
+data/users.db
 my_phobert_model/
 *.safetensors

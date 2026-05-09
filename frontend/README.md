@@ -14,8 +14,8 @@ python -m http.server 3000 --directory .
 npx serve .
 ```
 
-Mặc định kết nối tới `http://localhost:8001` (backend API). Có thể chỉnh API URL trong giao diện.
+Mặc định kết nối tới `http://localhost:8000` (backend API). Có thể chỉnh API URL trong giao diện.
 
 ## Yêu cầu
 
-- Backend API đang chạy tại port 8001
+- Backend API đang chạy tại port 8000

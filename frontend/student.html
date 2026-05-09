@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Khảo sát · Cổng Sinh viên</title>
+  <link rel="stylesheet" href="styles/student.css" />
+</head>
+<body class="student-body">
+  <main class="student-wrap">
+    <!-- A. Đăng nhập -->
+    <section id="loginSection" class="card login-card">
+      <h1>Đăng nhập</h1>
+      <p class="subtitle">Nhập MSSV và mật khẩu do nhà trường cấp</p>
+      <form id="loginForm" class="stack">
+        <label class="lbl" for="username">MSSV</label>
+        <input type="text" id="username" name="username" autocomplete="username" placeholder="Ví dụ: 38165" required />
+        <label class="lbl" for="password">Mật khẩu</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required />
+        <button type="submit" class="btn primary btn-login" id="btnLogin">
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <span class="btn-label">Đăng nhập</span>
+        </button>
+      </form>
+      <p class="muted small" style="text-align:center;margin-top:1rem">
+        <a href="lecturer.html">Cổng Giảng viên</a> · <a href="index.html">Demo</a>
+      </p>
+      <div class="error" id="loginError"></div>
+    </section>
+
+    <!-- B + C. Sau đăng nhập -->
+    <section id="appSection" class="hidden">
+      <header class="student-header">
+        <div>
+          <p class="greeting" id="greeting"></p>
+          <p class="student-meta muted small" id="metaLine"></p>
+        </div>
+        <button type="button" class="btn ghost" id="btnLogout">Đăng xuất</button>
+      </header>
+
+      <nav class="student-nav" role="tablist">
+        <button type="button" class="nav-tab active" data-page="survey" role="tab">Khảo sát</button>
+        <button type="button" class="nav-tab" data-page="history" role="tab">Lịch sử</button>
+      </nav>
+
+      <div class="card banner hidden" id="mustChangeBanner">
+        <strong>Đổi mật khẩu lần đầu</strong>
+        <p class="muted small">Vui lòng đổi mật khẩu mặc định trước khi gửi khảo sát.</p>
+        <form id="changePwdForm" class="stack tight">
+          <input type="password" id="oldPwd" placeholder="Mật khẩu hiện tại" required />
+          <input type="password" id="newPwd" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" minlength="8" required />
+          <button type="submit" class="btn primary">Cập nhật mật khẩu</button>
+        </form>
+        <p class="muted small" id="pwdMsg"></p>
+      </div>
+
+      <!-- B. Khảo sát -->
+      <div id="surveyPage">
+        <div class="thank-you hidden" id="thankYou" role="status"></div>
+
+        <div class="card">
+          <p class="lbl">Khảo sát theo môn</p>
+          <p class="muted small" style="margin-bottom:0.75rem">
+            Các môn dưới đây do giảng viên mở cho lớp của bạn. Bấm <strong>Điền form</strong> để trả lời các câu hỏi mở.
+          </p>
+          <div id="surveyOfferingsList" class="offerings-list"></div>
+          <p class="muted small hidden" id="surveyOfferingsEmpty">
+            Hiện chưa có môn nào được mở khảo sát. Vui lòng liên hệ giảng viên.
+          </p>
+        </div>
+
+        <div class="card" style="margin-top:1rem">
+          <label class="lbl" for="surveyInput">Góp ý chung (không gắn môn cụ thể)</label>
+          <textarea
+            id="surveyInput"
+            class="survey-textarea"
+            placeholder="Viết ý kiến chung về học tập, lớp…"
+            rows="6"
+          ></textarea>
+          <button type="button" class="btn primary btn-submit-survey" id="btnSubmitSurvey">
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span class="btn-label">Gửi góp ý chung</span>
+          </button>
+          <p class="muted small" style="margin-top:0.75rem">
+            Nội dung được phân tích bằng PhoBERT. Khảo sát theo môn dùng form riêng phía trên.
+          </p>
+          <div class="error" id="surveyError"></div>
+        </div>
+      </div>
+
+      <div id="surveyModalBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="surveyModalTitle">
+          <h2 id="surveyModalTitle" class="modal-title">Khảo sát môn học</h2>
+          <p class="muted small" id="surveyModalMeta"></p>
+          <div id="surveyModalFields" class="stack tight" style="margin-top:0.75rem"></div>
+          <div class="modal-actions" style="margin-top:1rem">
+            <button type="button" class="btn ghost" id="btnSurveyModalCancel">Hủy</button>
+            <button type="button" class="btn primary" id="btnSurveyModalSubmit">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <span class="btn-label">Gửi khảo sát</span>
+            </button>
+          </div>
+          <div class="error" id="surveyModalError" style="margin-top:0.75rem"></div>
+        </div>
+      </div>
+
+      <!-- C. Lịch sử -->
+      <div id="historyPage" class="hidden">
+        <div class="card">
+          <p class="lbl" style="margin-bottom:0.75rem">Các đợt khảo sát đã gửi</p>
+          <div class="history-empty hidden" id="historyEmpty">Bạn chưa có lượt khảo sát nào.</div>
+          <div class="acc-list" id="historyAccordion"></div>
+          <div class="error" id="historyError"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="js/student-portal.js"></script>
+</body>
+</html>
