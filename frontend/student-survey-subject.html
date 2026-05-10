@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Khảo sát môn học · Sinh viên</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/student.css" />
+</head>
+<body class="student-body student-survey-page">
+  <main class="student-main">
+    <section id="surveySubjectFormApp" class="student-app survey-only-shell" aria-label="Khảo sát theo môn">
+      <header class="student-app-header">
+        <div class="student-app-header__row survey-standalone-header__row">
+          <a href="student-survey.html" class="survey-back-link">← Danh sách môn</a>
+          <div class="student-app-header__user survey-standalone-user">
+            <p class="greeting" id="greeting"></p>
+            <p class="student-meta muted small" id="metaLine"></p>
+          </div>
+          <button type="button" class="btn ghost btn-logout" id="btnLogout">Đăng xuất</button>
+        </div>
+      </header>
+
+      <div class="student-app-scroll survey-only-scroll subject-survey-scroll">
+        <div class="card banner hidden" id="mustChangeBanner">
+          <strong>Đổi mật khẩu lần đầu</strong>
+          <p class="muted small">Vui lòng đổi mật khẩu mặc định trước khi gửi khảo sát.</p>
+          <form id="changePwdForm" class="stack tight">
+            <input type="password" id="oldPwd" placeholder="Mật khẩu hiện tại" required />
+            <input type="password" id="newPwd" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" minlength="8" required />
+            <button type="submit" class="btn primary">Cập nhật mật khẩu</button>
+          </form>
+          <p class="muted small" id="pwdMsg"></p>
+        </div>
+
+        <div class="error subject-survey-boot-err hidden" id="subjectSurveyBootError" role="alert"></div>
+
+        <div class="thank-you hidden" id="subjectSurveyThankYou" role="status"></div>
+
+        <div id="subjectSurveyFormShell" class="subject-survey-form-shell hidden">
+          <article class="card card--elevated subject-survey-card">
+            <header class="subject-survey-card__head">
+              <h1 class="subject-survey-card__title" id="subjectSurveyTitle">Khảo sát môn học</h1>
+              <p class="subject-survey-card__meta muted small" id="subjectSurveyMeta"></p>
+            </header>
+            <div id="subjectSurveyFields" class="subject-survey-fields stack tight"></div>
+            <button type="button" class="btn primary btn-subject-submit" id="btnSubjectSurveySubmit">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <span class="btn-label">Gửi khảo sát</span>
+            </button>
+            <p class="subject-survey-footnote muted small">
+              Nội dung được phân tích cảm xúc bằng mô hình PhoBERT.
+            </p>
+            <div class="error" id="subjectSurveySubmitError"></div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="js/student-survey-subject.js"></script>
+</body>
+</html>

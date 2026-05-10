@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Khảo sát · Sinh viên</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/student.css" />
+</head>
+<body class="student-body student-survey-page">
+  <main class="student-main">
+    <section id="surveyOnlyApp" class="student-app survey-only-shell" aria-label="Cổng sinh viên">
+      <header class="student-app-header">
+        <div class="student-app-header__row survey-main-header__row">
+          <div class="student-app-header__user survey-main-user">
+            <p class="greeting" id="greeting"></p>
+            <p class="student-meta muted small" id="metaLine"></p>
+          </div>
+          <button type="button" class="btn ghost btn-logout" id="btnLogout">Đăng xuất</button>
+        </div>
+        <nav class="student-nav" role="tablist" aria-label="Khu vực làm việc">
+          <button type="button" class="nav-tab active" data-page="survey" role="tab" aria-selected="true">Khảo sát</button>
+          <button type="button" class="nav-tab" data-page="history" role="tab" aria-selected="false">Lịch sử</button>
+        </nav>
+      </header>
+
+      <div class="student-app-scroll survey-only-scroll">
+        <div class="card banner hidden" id="mustChangeBanner">
+          <strong>Đổi mật khẩu lần đầu</strong>
+          <p class="muted small">Vui lòng đổi mật khẩu mặc định trước khi gửi khảo sát.</p>
+          <form id="changePwdForm" class="stack tight">
+            <input type="password" id="oldPwd" placeholder="Mật khẩu hiện tại" required />
+            <input type="password" id="newPwd" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" minlength="8" required />
+            <button type="submit" class="btn primary">Cập nhật mật khẩu</button>
+          </form>
+          <p class="muted small" id="pwdMsg"></p>
+        </div>
+
+        <div id="surveyPage" class="survey-page">
+          <div class="thank-you hidden" id="thankYou" role="status"></div>
+
+          <div class="survey-hero">
+            <h2 class="survey-hero__title">Khảo sát &amp; góp ý</h2>
+            <p class="survey-hero__lead muted">
+              Trả lời khảo sát theo từng môn hoặc gửi ý kiến chung. Ý kiến của bạn được xử lý bảo mật và hỗ trợ cải thiện chất lượng đào tạo.
+            </p>
+          </div>
+
+          <div class="survey-layout">
+            <article class="survey-panel survey-panel--subjects card card--elevated">
+              <header class="survey-panel__head">
+                <span class="survey-panel__step" aria-hidden="true">1</span>
+                <div class="survey-panel__head-text">
+                  <h3 class="survey-panel__title">Khảo sát theo môn</h3>
+                  <p class="survey-panel__desc muted small">
+                    Danh sách môn do giảng viên mở cho lớp bạn. Chọn <strong>Điền form</strong> để mở trang điền khảo sát cho từng môn.
+                  </p>
+                </div>
+              </header>
+              <div id="surveyOfferingsList" class="offerings-list"></div>
+              <p class="offerings-empty muted small hidden" id="surveyOfferingsEmpty">
+                Hiện chưa có môn nào được mở khảo sát. Vui lòng liên hệ giảng viên.
+              </p>
+            </article>
+
+            <article class="survey-panel survey-panel--general card card--elevated">
+              <header class="survey-panel__head survey-panel__head--compact">
+                <span class="survey-panel__step" aria-hidden="true">2</span>
+                <div class="survey-panel__head-text">
+                  <h3 class="survey-panel__title">Góp ý chung</h3>
+                  <p class="survey-panel__desc muted small">Không gắn với một môn cụ thể — phù hợp nhận xét chung về học tập, tổ chức lớp, v.v.</p>
+                </div>
+              </header>
+              <label class="lbl sr-only" for="surveyInput">Nội dung góp ý chung</label>
+              <textarea
+                id="surveyInput"
+                class="survey-textarea"
+                placeholder="Viết ý kiến của bạn…"
+                rows="8"
+              ></textarea>
+              <button type="button" class="btn primary btn-submit-survey" id="btnSubmitSurvey">
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span class="btn-label">Gửi góp ý chung</span>
+              </button>
+              <p class="survey-footnote muted small">
+                Nội dung được phân tích cảm xúc bằng mô hình PhoBERT.
+              </p>
+              <div class="error" id="surveyError"></div>
+            </article>
+          </div>
+        </div>
+
+        <div id="historyPage" class="hidden history-page">
+          <div class="history-page__intro">
+            <h2 class="history-page__title">Lịch sử gửi</h2>
+            <p class="history-page__lead muted small">Các đợt khảo sát và phản hồi bạn đã gửi.</p>
+          </div>
+          <div class="card card--elevated">
+            <div class="history-empty hidden" id="historyEmpty">Bạn chưa có lượt khảo sát nào.</div>
+            <div class="acc-list" id="historyAccordion"></div>
+            <div class="error" id="historyError"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="js/student-portal.js"></script>
+</body>
+</html>

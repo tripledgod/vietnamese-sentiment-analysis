@@ -23,7 +23,12 @@ from app.services.feedbacks_repo import (
     list_feedbacks_by_user,
     list_feedbacks_for_dashboard,
 )
-from app.services.sentiment_pipeline import build_predict_response, first_block_label_and_confidence
+from app.services.sentiment_pipeline import (
+    build_predict_response,
+    build_predict_response_for_feedback,
+    first_block_label_and_confidence,
+    survey_answers_text_for_model,
+)
 
 router = APIRouter(tags=["feedbacks"])
 
@@ -53,11 +58,16 @@ def submit_feedback(
                 detail="Khảo sát này không mở cho lớp của bạn hoặc đã tắt",
             )
         survey_cfg = int(body.survey_config_id)
-        text_for_model = "\n\n".join(
+        text_for_storage = "\n\n".join(
             f"{a.question.strip()}\n{a.answer.strip()}" for a in (body.answers or [])
         )
+        # Chỉ đưa câu trả lời vào PhoBERT; bỏ tên GV và «Không» ở câu góp ý thêm.
+        text_for_model = survey_answers_text_for_model(body.answers or [])
+        if not text_for_model.strip():
+            text_for_model = " "
     else:
-        text_for_model = (body.content or "").strip()
+        text_for_storage = (body.content or "").strip()
+        text_for_model = text_for_storage
 
     try:
         pr = build_predict_response(text_for_model, get_predictor_for_inference())
@@ -71,7 +81,7 @@ def submit_feedback(
         fid = insert_feedback(
             conn,
             user_id=int(user["id"]),
-            content=text_for_model,
+            content=text_for_storage,
             label=label,
             confidence=confidence,
             survey_config_id=survey_cfg,
@@ -93,7 +103,8 @@ def my_feedback_history(
     """
     Lịch sử phản hồi của sinh viên đang đăng nhập.
     Mỗi phần tử `rounds` = một lượt gửi (theo `id` bảng feedbacks / thời gian).
-    `sentences` được tái tạo bằng PhoBERT trên `content` đã lưu (cùng pipeline với lúc gửi).
+    `sentences` được tái tạo bằng PhoBERT: khảo sát theo môn chỉ trên các **câu trả lời**
+    (cùng logic lúc gửi); phản hồi tự do thì trên toàn bộ `content`.
     """
     uid = int(user["id"])
     with get_db() as conn:
@@ -102,13 +113,17 @@ def my_feedback_history(
 
     rounds: list[FeedbackHistoryRound] = []
     for r in rows:
+        scid = r["survey_config_id"] if r["survey_config_id"] is not None else None
         sentences = []
         try:
-            pr = build_predict_response(r["content"], get_predictor_for_inference())
+            pr = build_predict_response_for_feedback(
+                content=str(r["content"]),
+                survey_config_id=int(scid) if scid is not None else None,
+                predictor=get_predictor_for_inference(),
+            )
             sentences = list(pr.sentences)
         except ValueError:
             sentences = []
-        scid = r["survey_config_id"] if r["survey_config_id"] is not None else None
         rounds.append(
             FeedbackHistoryRound(
                 round_id=int(r["id"]),

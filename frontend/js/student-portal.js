@@ -10,17 +10,76 @@
   const SURVEY_FORM_NAME = 'Khảo sát cảm xúc phản hồi học tập';
   const DEFAULT_SURVEY_OFFERINGS_EMPTY =
     'Hiện chưa có môn nào được mở khảo sát. Vui lòng liên hệ giảng viên.';
-  const SURVEY_QUESTIONS = [
-    'Bạn đánh giá thế nào về phương pháp giảng dạy của giảng viên?',
-    'Cơ sở vật chất phục vụ môn học này ra sao?',
-    'Nội dung môn học có đáp ứng kỳ vọng của bạn không?',
-    'Bạn có góp ý thêm nào khác không? (Nếu không, ghi "Không")',
-  ];
   const LABEL_VI = {
     positive: 'Tích cực',
     negative: 'Tiêu cực',
     neutral: 'Trung tính',
   };
+  /** Khớp backend/app/services/sentiment_pipeline.py và student-survey-subject.js */
+  const SURVEY_TEACHER_NAME_Q = 'Tên giảng viên phụ trách môn học';
+  const SURVEY_OPTIONAL_COMMENT_Q =
+    'Bạn có góp ý thêm nào khác không? (Nếu không, ghi "Không")';
+
+  function foldViLower(s) {
+    try {
+      return String(s || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    } catch (_) {
+      return String(s || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    }
+  }
+
+  function stripSurroundingQuotes(s) {
+    var t = String(s || '').trim();
+    if (t.length >= 2) {
+      var a = t[0];
+      var b = t[t.length - 1];
+      if (a === b && '\'"“”‘’'.indexOf(a) >= 0) return t.slice(1, -1).trim();
+    }
+    return t;
+  }
+
+  function isEffectivelyNoExtraComment(answer) {
+    var a = stripSurroundingQuotes(answer);
+    a = String(a || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!a) return true;
+    var f = foldViLower(a);
+    return f === 'khong' || f === 'ko';
+  }
+
+  function skipSurveyPairForSentiment(q, a) {
+    var qs = String(q || '').trim();
+    if (qs === SURVEY_TEACHER_NAME_Q) return true;
+    if (qs === SURVEY_OPTIONAL_COMMENT_Q && isEffectivelyNoExtraComment(a)) return true;
+    return false;
+  }
+
+  /** Mỗi phần tử = một dòng gửi PhoBERT (khớp split_by_newlines sau khi nối bằng \\n). */
+  function expandSurveyLinesForSentimentModel(pairs) {
+    var out = [];
+    if (!pairs || !pairs.length) return out;
+    for (var i = 0; i < pairs.length; i++) {
+      var p = pairs[i];
+      if (skipSurveyPairForSentiment(p.q, p.a)) continue;
+      var text = String(p.a || '').replace(/\r\n/g, '\n').trim();
+      if (!text) continue;
+      var lines = text.split('\n');
+      for (var j = 0; j < lines.length; j++) {
+        var line = lines[j].replace(/\s+/g, ' ').trim();
+        if (line) out.push({ q: p.q, line: line });
+      }
+    }
+    return out;
+  }
 
   function token() {
     return sessionStorage.getItem(TOKEN_KEY);
@@ -110,9 +169,12 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    const PORTAL_SURVEY_ONLY = document.getElementById('surveyOnlyApp') !== null;
     const loginSection = document.getElementById('loginSection');
     const appSection = document.getElementById('appSection');
     const loginForm = document.getElementById('loginForm');
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const surveyPage = document.getElementById('surveyPage');
     const loginError = document.getElementById('loginError');
     const loginBtn = document.getElementById('btnLogin');
     const greetingEl = document.getElementById('greeting');
@@ -121,9 +183,7 @@
     const changePwdForm = document.getElementById('changePwdForm');
     const pwdMsg = document.getElementById('pwdMsg');
     const btnLogout = document.getElementById('btnLogout');
-    const surveyPage = document.getElementById('surveyPage');
     const historyPage = document.getElementById('historyPage');
-    const navTabs = document.querySelectorAll('.nav-tab');
     const surveyInput = document.getElementById('surveyInput');
     const btnSubmit = document.getElementById('btnSubmitSurvey');
     const thankYou = document.getElementById('thankYou');
@@ -133,17 +193,10 @@
     const historyEmpty = document.getElementById('historyEmpty');
     const surveyOfferingsList = document.getElementById('surveyOfferingsList');
     const surveyOfferingsEmpty = document.getElementById('surveyOfferingsEmpty');
-    const surveyModalBackdrop = document.getElementById('surveyModalBackdrop');
-    const surveyModalMeta = document.getElementById('surveyModalMeta');
-    const surveyModalFields = document.getElementById('surveyModalFields');
-    const surveyModalError = document.getElementById('surveyModalError');
-    const btnSurveyModalCancel = document.getElementById('btnSurveyModalCancel');
-    const btnSurveyModalSubmit = document.getElementById('btnSurveyModalSubmit');
 
     let profile = null;
     let currentMustChange = false;
     let historyLoaded = false;
-    let surveyModalConfigId = null;
 
     function show(el, on) {
       el.classList.toggle('hidden', !on);
@@ -158,18 +211,11 @@
     }
 
     function setSubmitLoading(loading) {
+      if (!btnSubmit) return;
       btnSubmit.disabled = loading;
       btnSubmit.classList.toggle('loading', loading);
       var label = btnSubmit.querySelector('.btn-label');
       if (label) label.textContent = loading ? 'Đang gửi…' : 'Gửi góp ý chung';
-    }
-
-    function setModalSubmitLoading(loading) {
-      if (!btnSurveyModalSubmit) return;
-      btnSurveyModalSubmit.disabled = loading;
-      btnSurveyModalSubmit.classList.toggle('loading', loading);
-      var label = btnSurveyModalSubmit.querySelector('.btn-label');
-      if (label) label.textContent = loading ? 'Đang gửi…' : 'Gửi khảo sát';
     }
 
     async function apiLogin(username, password) {
@@ -242,22 +288,6 @@
       return Array.isArray(data) ? data : [];
     }
 
-    async function apiSubmitSurveyFeedback(surveyConfigId, answers) {
-      const res = await fetch(API_URL + '/feedbacks', {
-        method: 'POST',
-        headers: authHeaders(true),
-        body: JSON.stringify({
-          survey_config_id: surveyConfigId,
-          answers: answers,
-        }),
-      });
-      const data = await res.json().catch(function () {
-        return {};
-      });
-      if (!res.ok) throw new Error(detailToMessage(data.detail) || 'Gửi khảo sát thất bại');
-      return data;
-    }
-
     async function apiMyHistory() {
       const res = await fetch(API_URL + '/feedbacks/my-history?limit=100', {
         headers: authHeaders(false),
@@ -270,7 +300,7 @@
     }
 
     function renderHeader() {
-      if (!profile) return;
+      if (!profile || !greetingEl || !metaEl) return;
       var name = profile.full_name || profile.username;
       greetingEl.textContent = 'Chào bạn, ' + name;
       var lop = profile.class_name ? profile.class_name : '—';
@@ -281,38 +311,39 @@
     }
 
     function showLoginView() {
+      if (PORTAL_SURVEY_ONLY) return;
       setToken(null);
       profile = null;
       historyLoaded = false;
-      show(loginSection, true);
-      show(appSection, false);
+      if (loginSection) show(loginSection, true);
+      if (appSection) show(appSection, false);
     }
 
-    async function showAppView() {
-      show(loginSection, false);
-      show(appSection, true);
+    async function showSurveyOnlyApp() {
       try {
         profile = await apiProfile();
         if (!profile || profile.role !== 'student') {
           setToken(null);
-          showLoginView();
-          loginError.textContent = 'Phiên không hợp lệ. Vui lòng đăng nhập lại.';
+          window.location.replace('student.html');
           return;
         }
         renderHeader();
         goSurvey();
       } catch (_) {
         setToken(null);
-        showLoginView();
+        window.location.replace('student.html');
       }
     }
 
     function goSurvey() {
+      if (!PORTAL_SURVEY_ONLY) return;
       navTabs.forEach(function (t) {
-        t.classList.toggle('active', t.getAttribute('data-page') === 'survey');
+        var on = t.getAttribute('data-page') === 'survey';
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
       });
-      show(surveyPage, true);
-      show(historyPage, false);
+      if (surveyPage) show(surveyPage, true);
+      if (historyPage) show(historyPage, false);
       loadSurveyOfferings();
     }
 
@@ -342,14 +373,12 @@
             ' · ' +
             esc(o.semester_name) +
             '</div></div>';
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'btn primary btn-sm';
-          btn.textContent = 'Điền form';
-          btn.addEventListener('click', function () {
-            openSurveyModal(o);
-          });
-          row.appendChild(btn);
+          var link = document.createElement('a');
+          link.href =
+            'student-survey-subject.html?c=' + encodeURIComponent(String(o.survey_config_id));
+          link.className = 'btn primary btn-sm offering-form-link';
+          link.textContent = 'Đánh giá';
+          row.appendChild(link);
           surveyOfferingsList.appendChild(row);
         });
       } catch (e) {
@@ -359,51 +388,40 @@
       }
     }
 
-    function openSurveyModal(o) {
-      if (!surveyModalBackdrop || !surveyModalFields) return;
-      surveyModalConfigId = o.survey_config_id;
-      surveyModalError.textContent = '';
-      document.getElementById('surveyModalTitle').textContent = 'Khảo sát: ' + o.subject_name;
-      surveyModalMeta.textContent = o.subject_code + ' · ' + o.semester_name;
-      surveyModalFields.innerHTML = '';
-      SURVEY_QUESTIONS.forEach(function (q, i) {
-        var wrap = document.createElement('div');
-        wrap.className = 'sq-field';
-        var lab = document.createElement('label');
-        lab.className = 'lbl';
-        lab.setAttribute('for', 'sq_' + i);
-        lab.textContent = q;
-        var ta = document.createElement('textarea');
-        ta.id = 'sq_' + i;
-        ta.required = true;
-        ta.setAttribute('rows', '3');
-        wrap.appendChild(lab);
-        wrap.appendChild(ta);
-        surveyModalFields.appendChild(wrap);
-      });
-      surveyModalBackdrop.classList.remove('hidden');
-      surveyModalBackdrop.setAttribute('aria-hidden', 'false');
-    }
-
-    function closeSurveyModal() {
-      surveyModalConfigId = null;
-      if (surveyModalBackdrop) {
-        surveyModalBackdrop.classList.add('hidden');
-        surveyModalBackdrop.setAttribute('aria-hidden', 'true');
-      }
-      if (surveyModalFields) surveyModalFields.innerHTML = '';
-    }
-
     function goHistory() {
+      if (!PORTAL_SURVEY_ONLY) return;
       navTabs.forEach(function (t) {
-        t.classList.toggle('active', t.getAttribute('data-page') === 'history');
+        var on = t.getAttribute('data-page') === 'history';
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
       });
-      show(surveyPage, false);
-      show(historyPage, true);
+      if (surveyPage) show(surveyPage, false);
+      if (historyPage) show(historyPage, true);
       loadHistory();
     }
 
+    function parseSurveyHistoryBlocks(content) {
+      if (content == null || content === '') return null;
+      var parts = String(content).replace(/\r\n/g, '\n').split(/\n\n/);
+      var out = [];
+      for (var i = 0; i < parts.length; i++) {
+        var block = parts[i].trim();
+        if (!block) continue;
+        var nl = block.indexOf('\n');
+        if (nl === -1) {
+          out.push({ q: '', a: block });
+          continue;
+        }
+        out.push({
+          q: block.slice(0, nl).trim(),
+          a: block.slice(nl + 1).trim(),
+        });
+      }
+      return out.length ? out : null;
+    }
+
     function buildAccordion(rounds) {
+      if (!historyAccordion) return;
       historyAccordion.innerHTML = '';
       if (!rounds || !rounds.length) {
         show(historyEmpty, true);
@@ -447,9 +465,36 @@
         panel.className = 'acc-panel';
         var inner = '';
         var sents = round.sentences || [];
+        var pairs =
+          round.survey_config_id != null ? parseSurveyHistoryBlocks(round.content) : null;
+        var chunks = pairs ? expandSurveyLinesForSentimentModel(pairs) : null;
         if (!sents.length) {
           inner +=
             '<p class="muted small" style="padding:0.75rem 0">Không tải được chi tiết câu (model chưa sẵn sàng).</p>';
+        } else if (chunks && chunks.length === sents.length) {
+          for (var si = 0; si < chunks.length; si++) {
+            var st = String(sents[si].sentiment || 'neutral');
+            var ch = chunks[si];
+            if (ch.q) {
+              inner +=
+                '<div class="history-detail-row history-detail-q">' +
+                '<div class="history-detail-text muted small">' +
+                esc(ch.q) +
+                '</div></div>';
+            }
+            inner +=
+              '<div class="history-detail-row">' +
+              '<div class="history-detail-text">“' +
+              esc(ch.line) +
+              '”</div>' +
+              '<div class="history-detail-meta">' +
+              '<span class="badge-vi ' +
+              labelClass(st) +
+              '">' +
+              esc(labelVi(st)) +
+              '</span>' +
+              '</div></div>';
+          }
         } else {
           sents.forEach(function (sent) {
             var st = String(sent.sentiment || 'neutral');
@@ -481,6 +526,7 @@
     }
 
     async function loadHistory() {
+      if (!historyAccordion || !historyError) return;
       historyError.textContent = '';
       if (!token()) return;
       try {
@@ -494,114 +540,95 @@
       }
     }
 
-    loginForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      loginError.textContent = '';
-      var u = normalizeLoginUsername(document.getElementById('username').value);
-      var p = document.getElementById('password').value;
-      if (!u || !p) return;
-      setLoginLoading(true);
-      try {
-        var data = await apiLogin(u, p);
-        setToken(data.access_token);
-        await showAppView();
-      } catch (err) {
-        loginError.textContent = err.message || String(err);
-      } finally {
-        setLoginLoading(false);
-      }
-    });
+    if (loginForm) {
+      loginForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (loginError) loginError.textContent = '';
+        var uEl = document.getElementById('username');
+        var pEl = document.getElementById('password');
+        var u = normalizeLoginUsername(uEl ? uEl.value : '');
+        var p = pEl ? pEl.value : '';
+        if (!u || !p) return;
+        setLoginLoading(true);
+        try {
+          var data = await apiLogin(u, p);
+          setToken(data.access_token);
+          window.location.href = 'student-survey.html';
+        } catch (err) {
+          if (loginError) loginError.textContent = err.message || String(err);
+        } finally {
+          setLoginLoading(false);
+        }
+      });
+    }
 
     btnLogout.addEventListener('click', function () {
-      document.getElementById('username').value = '';
-      document.getElementById('password').value = '';
-      thankYou.classList.add('hidden');
-      surveyInput.value = '';
-      closeSurveyModal();
+      var uEl = document.getElementById('username');
+      var pEl = document.getElementById('password');
+      if (uEl) uEl.value = '';
+      if (pEl) pEl.value = '';
+      if (thankYou) thankYou.classList.add('hidden');
+      if (surveyInput) surveyInput.value = '';
+      if (PORTAL_SURVEY_ONLY) {
+        setToken(null);
+        window.location.href = 'student.html';
+        return;
+      }
       showLoginView();
     });
 
-    if (btnSurveyModalCancel) {
-      btnSurveyModalCancel.addEventListener('click', closeSurveyModal);
-    }
-    if (surveyModalBackdrop) {
-      surveyModalBackdrop.addEventListener('click', function (e) {
-        if (e.target === surveyModalBackdrop) closeSurveyModal();
-      });
-    }
-    if (btnSurveyModalSubmit) {
-      btnSurveyModalSubmit.addEventListener('click', async function () {
-        if (surveyModalConfigId == null) return;
-        surveyModalError.textContent = '';
-        var answers = [];
-        for (var i = 0; i < SURVEY_QUESTIONS.length; i++) {
-          var el = document.getElementById('sq_' + i);
-          var a = el && el.value ? el.value.trim() : '';
-          if (!a) {
-            surveyModalError.textContent = 'Vui lòng trả lời đủ các câu hỏi.';
-            return;
-          }
-          answers.push({ question: SURVEY_QUESTIONS[i], answer: a });
-        }
-        setModalSubmitLoading(true);
-        try {
-          await apiSubmitSurveyFeedback(surveyModalConfigId, answers);
-          closeSurveyModal();
-          thankYou.classList.remove('hidden');
-          thankYou.textContent = 'Cảm ơn bạn, khảo sát đã được ghi nhận!';
-          historyLoaded = false;
-          loadSurveyOfferings();
-        } catch (err) {
-          surveyModalError.textContent = err.message || String(err);
-        } finally {
-          setModalSubmitLoading(false);
-        }
+    if (PORTAL_SURVEY_ONLY && navTabs.length) {
+      navTabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          if (tab.getAttribute('data-page') === 'history') goHistory();
+          else goSurvey();
+        });
       });
     }
 
-    navTabs.forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        if (tab.getAttribute('data-page') === 'history') goHistory();
-        else goSurvey();
-      });
-    });
-
-    changePwdForm.addEventListener('submit', async function (e) {
+    if (changePwdForm) changePwdForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      pwdMsg.textContent = '';
+      if (pwdMsg) pwdMsg.textContent = '';
       var oldP = document.getElementById('oldPwd').value;
       var newP = document.getElementById('newPwd').value;
       try {
         await apiChangePassword(oldP, newP);
-        pwdMsg.textContent = 'Đã cập nhật mật khẩu.';
+        if (pwdMsg) pwdMsg.textContent = 'Đã cập nhật mật khẩu.';
         document.getElementById('oldPwd').value = '';
         document.getElementById('newPwd').value = '';
         profile = await apiProfile();
         renderHeader();
+        loadSurveyOfferings();
+        historyLoaded = false;
+        if (PORTAL_SURVEY_ONLY && historyPage && !historyPage.classList.contains('hidden')) {
+          loadHistory();
+        }
       } catch (err) {
-        pwdMsg.textContent = err.message || String(err);
+        if (pwdMsg) pwdMsg.textContent = err.message || String(err);
       }
     });
 
-    btnSubmit.addEventListener('click', async function () {
+    if (btnSubmit) btnSubmit.addEventListener('click', async function () {
       var text = surveyInput.value.trim();
       if (!text) return;
       if (currentMustChange) {
-        surveyError.textContent = 'Vui lòng đổi mật khẩu ở khối phía trên trước khi gửi phản hồi.';
+        if (surveyError) surveyError.textContent = 'Vui lòng đổi mật khẩu ở khối phía trên trước khi gửi phản hồi.';
         return;
       }
-      surveyError.textContent = '';
-      thankYou.classList.add('hidden');
+      if (surveyError) surveyError.textContent = '';
+      if (thankYou) thankYou.classList.add('hidden');
       setSubmitLoading(true);
       try {
         await apiSubmitFeedback(text);
-        thankYou.classList.remove('hidden');
-        thankYou.textContent =
-          'Cảm ơn bạn, phản hồi của bạn đã được ghi nhận!';
+        if (thankYou) {
+          thankYou.classList.remove('hidden');
+          thankYou.textContent =
+            'Cảm ơn bạn, phản hồi của bạn đã được ghi nhận!';
+        }
         surveyInput.value = '';
         historyLoaded = false;
       } catch (err) {
-        surveyError.textContent = 'Lỗi: ' + (err.message || String(err));
+        if (surveyError) surveyError.textContent = 'Lỗi: ' + (err.message || String(err));
       } finally {
         setSubmitLoading(false);
       }
@@ -609,11 +636,19 @@
 
     async function boot() {
       await migrateLegacyStudentToken();
+      if (PORTAL_SURVEY_ONLY) {
+        if (!token()) {
+          window.location.replace('student.html');
+          return;
+        }
+        await showSurveyOnlyApp();
+        return;
+      }
       if (!token()) {
         showLoginView();
         return;
       }
-      await showAppView();
+      window.location.replace('student-survey.html');
     }
 
     boot();

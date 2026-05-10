@@ -75,6 +75,23 @@
     else sessionStorage.removeItem(ADMIN_KEY_STORAGE);
   }
 
+  /**
+   * Khóa đã lưu hoặc đang gõ trong ô (fallback).
+   * Tránh lỗi: đã bấm Lưu nhưng sessionStorage trống do khác origin (vd. 127.0.0.1 vs localhost),
+   * hoặc chưa bấm Lưu nhưng ô đã có giá trị.
+   */
+  function getEffectiveAdminKey() {
+    const fromStore = getAdminKey().trim();
+    if (fromStore) return fromStore;
+    const el = document.getElementById('adminKeyInput');
+    const fromInput = el && el.value ? String(el.value).trim() : '';
+    if (fromInput) {
+      setAdminKey(fromInput);
+      return fromInput;
+    }
+    return '';
+  }
+
   function esc(s) {
     const d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
@@ -556,10 +573,14 @@
     document.getElementById('btnSaveAdminKey').addEventListener('click', function () {
       const k = document.getElementById('adminKeyInput').value.trim();
       setAdminKey(k);
-      document.getElementById('adminKeyMsg').textContent = k
-        ? 'Đã lưu khóa trong phiên trình duyệt (session).'
-        : 'Đã xóa khóa.';
-      document.getElementById('adminKeyMsg').className = 'ok';
+      const msgEl = document.getElementById('adminKeyMsg');
+      if (k) {
+        msgEl.textContent = 'Đã lưu khóa trong phiên trình duyệt (session).';
+        msgEl.className = 'ok';
+      } else {
+        msgEl.textContent = 'Đã xóa khóa.';
+        msgEl.className = '';
+      }
     });
 
     document.getElementById('btnPickExcel').addEventListener('click', function () {
@@ -571,7 +592,7 @@
       const msg = document.getElementById('importMsg');
       msg.textContent = '';
       if (!f) return;
-      const key = getAdminKey();
+      const key = getEffectiveAdminKey();
       if (!key) {
         msg.textContent = 'Nhập và lưu X-Admin-Key trước.';
         msg.className = 'err';
@@ -620,7 +641,7 @@
       const msg = document.getElementById('importMasterMsg');
       msg.textContent = '';
       if (!f) return;
-      const key = getAdminKey();
+      const key = getEffectiveAdminKey();
       if (!key) {
         msg.textContent = 'Nhập và lưu X-Admin-Key trước.';
         msg.className = 'err';
@@ -681,7 +702,7 @@
       e.preventDefault();
       const msg = document.getElementById('classMsg');
       msg.textContent = '';
-      const key = getAdminKey();
+      const key = getEffectiveAdminKey();
       if (!key) {
         msg.textContent = 'Nhập và lưu X-Admin-Key trước.';
         msg.className = 'err';
